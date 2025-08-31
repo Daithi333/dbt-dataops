@@ -45,27 +45,36 @@ def truncate_table(engine: Engine, schema: str, table: str):
 
 
 def load_parquet_in_chunks(
-    conn: Connection, schema: str, table: str, file_path: Path
+    conn: Connection, schema: str, table: str, file_path: Path, columns: list[str] | None,
 ) -> None:
     print(f"Loading f'{file_path}' into {schema}.{table}")
     parquet_file = pq.ParquetFile(file_path)
 
-    for batch in parquet_file.iter_batches():
+    for i, batch in enumerate(parquet_file.iter_batches()):
         df = batch.to_pandas()
+        if columns:
+            df.columns = columns
+        print(f"  inserting batch {i + 1}")
         df.to_sql(table, con=conn, schema=schema, if_exists="append", index=False)
 
 
 def load_csv_in_chunks(
-    conn: Connection, schema: str, table: str, file_path: Path, chunk_size=100_000
+    conn: Connection, schema: str, table: str, file_path: Path, columns: list[str] | None, chunk_size=100_000
 ) -> None:
     print(f"Loading f'{file_path}' into {schema}.{table}")
-    chunk_iter = pd.read_csv(file_path, chunksize=chunk_size)
+    chunk_iter = pd.read_csv(
+        file_path,
+        chunksize=chunk_size,
+        names=columns,
+        header=None if columns else "infer"
+    )
 
     for i, chunk in enumerate(chunk_iter):
+        print(f"  inserting chunk {i + 1}")
         chunk.to_sql(table, con=conn, schema=schema, if_exists="append", index=False)
 
 
-def load_table(engine, schema: str, table: str, sources: list[str]) -> None:
+def load_table(engine, schema: str, table: str, sources: list[str], columns: list[str]) -> None:
     if isinstance(sources, str):
         sources = [sources]
 
@@ -79,9 +88,9 @@ def load_table(engine, schema: str, table: str, sources: list[str]) -> None:
 
         with engine.connect() as conn:
             if file_path.suffix == ".csv":
-                load_csv_in_chunks(conn, schema, table, file_path)
+                load_csv_in_chunks(conn, schema, table, file_path, columns)
             elif file_path.suffix in (".parquet", ".pq"):
-                load_parquet_in_chunks(conn, schema, table, file_path)
+                load_parquet_in_chunks(conn, schema, table, file_path, columns)
             else:
                 raise ValueError(f"Unsupported file type: {file_path.suffix}")
 
@@ -96,7 +105,14 @@ def load_project_data(project_config: dict) -> None:
         sources = meta.get("sources") or meta.get("source")
         if not sources:
             raise ValueError(f"⚠️ No sources defined for {schema}.{table}, skipping...")
-        load_table(engine, schema, table, sources)
+
+        # if the source data does not have headers, columns should be defined in the config.yml
+        columns = None
+        if column_defs := meta.get("columns"):
+            # only using col name for now. Consider fully declarative table setup in advance
+            columns = [c["name"] for c in column_defs]
+
+        load_table(engine, schema, table, sources, columns)
 
 
 def main() -> None:

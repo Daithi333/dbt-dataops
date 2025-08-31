@@ -1,0 +1,31 @@
+models:
+  - name: addresses_silver
+    description: "addresses"
+    columns:
+      - name: company_id
+        description: "Company"
+        tests:
+          - not_null
+          - unique
+      - name: address
+        description: "Address"
+        tests:
+          - not_null
+      - name: total_spend
+        description: "Total Spend"
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: numeric
+      - name: city
+        description: "City"
+        tests:
+          - not_null
+  - name: cities_silver
+    description: "cities"
+    columns:
+      - name: city
+        description: "City"
+        tests:
+          - not_null
+          - unique

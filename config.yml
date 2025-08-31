@@ -15,5 +15,8 @@ projects:
     tables:
       cities:
         source: cities.csv
+        columns:
+          - name: city
+            type: text
       addresses:
         source: addresses.csv
