@@ -1,0 +1,17 @@
+# IDE
+.idea/
+__pycache__/
+
+# raw data
+*.parquet
+*.csv
+
+# environment
+.venv/
+.env
+
+# os
+.DS_Store
+
+# dbt
+dbt_projects/logs/
