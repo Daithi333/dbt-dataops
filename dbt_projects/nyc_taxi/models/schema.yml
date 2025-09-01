@@ -1,16 +1,15 @@
 version: 2
 
 models:
-  - name: trip_data_silver
-    description: "Silver table copied from bronze NYC Taxi trip_data"
+  - name: trip_data_bronze
+    description: "NYC taxi trip data with column names transformed to lower and snake case"
     columns:
-      - name: VendorID
+      - name: vendor_id
         description: "Taxi vendor identifier"
-#        tests:
-#          - not_null
-#          - unique
-#          - dbt_expectations.expect_column_values_to_be_of_type:
-#              column_type: integer
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: integer
       - name: tpep_pickup_datetime
         description: "Pickup timestamp"
         tests:
@@ -23,16 +22,16 @@ models:
         description: "Number of passengers"
       - name: trip_distance
         description: "Distance traveled in miles"
-      - name: RatecodeID
+      - name: ratecode_id
         description: "Rate code"
       - name: store_and_fwd_flag
         description: "Store and forward flag"
         tests:
           - accepted_values:
               values: ["Y", "N"]
-      - name: PULocationID
+      - name: pu_location_id
         description: "Pickup location ID"
-      - name: DOLocationID
+      - name: do_location_id
         description: "Dropoff location ID"
       - name: payment_type
         description: "Payment type code"
@@ -44,5 +43,28 @@ models:
       - name: improvement_surcharge
       - name: total_amount
       - name: congestion_surcharge
-      - name: Airport_fee
+      - name: airport_fee
+      - name: cbd_congestion_fee
+  - name: trip_data_silver
+    description: "Silver table copied from bronze NYC Taxi trip_data"
+    columns:
+      - name: vendor_id
+      - name: tpep_pickup_datetime
+      - name: tpep_dropoff_datetime
+      - name: passenger_count
+      - name: trip_distance
+      - name: ratecode_id
+      - name: store_and_fwd_flag
+      - name: pu_location_id
+      - name: do_location_id
+      - name: payment_type
+      - name: fare_amount
+      - name: extra
+      - name: mta_tax
+      - name: tip_amount
+      - name: tolls_amount
+      - name: improvement_surcharge
+      - name: total_amount
+      - name: congestion_surcharge
+      - name: airport_fee
       - name: cbd_congestion_fee
