@@ -2,9 +2,8 @@
 .idea/
 __pycache__/
 
-# raw data
-*.parquet
-*.csv
+# raw datasets
+datasets/*
 
 # environment
 .venv/
