@@ -20,7 +20,7 @@ DB_NAME = os.environ["DB_NAME"]
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DATASETS_PATH = PROJECT_ROOT / "datasets"
-CONFIG_PATH = PROJECT_ROOT / "config.yml"
+SOURCE_CONFIG_PATH = PROJECT_ROOT / "source_config.yml"
 
 
 def load_config(path: Path | str) -> dict:
@@ -95,13 +95,13 @@ def load_table(engine, schema: str, table: str, sources: list[str], columns: lis
                 raise ValueError(f"Unsupported file type: {file_path.suffix}")
 
 
-def load_project_data(project_config: dict) -> None:
+def load_project_data(project_source_config: dict) -> None:
     engine = get_engine()
 
-    schema = project_config["schema"]
+    schema = project_source_config["schema"]
     ensure_schema(engine, schema)
 
-    for table, meta in project_config["tables"].items():
+    for table, meta in project_source_config["tables"].items():
         sources = meta.get("sources") or meta.get("source")
         if not sources:
             raise ValueError(f"⚠️ No sources defined for {schema}.{table}, skipping...")
@@ -116,7 +116,7 @@ def load_project_data(project_config: dict) -> None:
 
 
 def main() -> None:
-    config = load_config(CONFIG_PATH)
+    source_config = load_config(SOURCE_CONFIG_PATH)
     parser = ArgumentParser(
         description="Load Data for the specified project into postgres."
     )
@@ -128,14 +128,14 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    if args.project not in config.keys():
+    if args.project not in source_config.keys():
         print(
-            f"❌ Invalid project '{args.project}'. Must be one of: {', '.join(config.keys())}"
+            f"❌ Invalid project '{args.project}'. Must be one of: {', '.join(source_config.keys())}"
         )
         sys.exit(1)
 
     print(f"✅ Loading data for project: {args.project} - start")
-    load_project_data(config[args.project])
+    load_project_data(source_config[args.project])
     print(f"✅ Loading data for project: {args.project} - complete")
 
 

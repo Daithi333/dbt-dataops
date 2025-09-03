@@ -4,12 +4,11 @@ on:
   push:
     branches: [ main ]
   pull_request:
+    branches: [ main ]
 
 jobs:
-  test:
+  dbt-ci:
     runs-on: ubuntu-latest
-
-    # Postgres service container
     services:
       postgres:
         image: postgres:15
@@ -25,18 +24,21 @@ jobs:
           --health-timeout=5s
           --health-retries=5
 
-    # tell dbt where profiles.yml lives
     env:
-      DBT_PROFILES_DIR: .
+      DBT_HOST: localhost
+      DBT_USER: postgres
+      DBT_PASSWORD: postgres
+      DBT_DBNAME: dataops
+      DBT_PORT: 5432
+      DBT_PROFILES_DIR: ../..   # points to repo root where profiles.yml lives
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: '3.12'
 
       - name: Install dbt
         run: |
@@ -45,14 +47,14 @@ jobs:
           pip install --upgrade pip
           pip install dbt-core dbt-postgres
 
-      - name: Run dbt seed/run/test for all projects
+      - name: Run dbt tests for all projects
         run: |
           source .venv/bin/activate
           for project in dbt_projects/*; do
-            echo "🔍 Running dbt seed/run/test for $project"
+            name=$(basename "$project")
+            echo "🔍 Running dbt tests for $name"
             cd "$project"
             dbt deps
-            dbt debug
             dbt seed --full-refresh
             dbt run
             dbt test || exit 1

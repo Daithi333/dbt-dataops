@@ -1,0 +1,22 @@
+# syntax=docker/dockerfile:1
+
+FROM python:3.12-slim
+
+# Install dbt dependencies
+RUN pip install --no-cache-dir dbt-core dbt-postgres
+
+# Allow passing in which project to build
+ARG PROJECT
+WORKDIR /app/${PROJECT}
+
+# Copy only that project
+COPY dbt_projects/${PROJECT}/ /app/${PROJECT}/
+
+# Copy default profiles.yml into image
+COPY profiles.yml /root/.dbt/profiles.yml
+
+# Install dbt deps for that project
+RUN dbt deps --project-dir /app/${PROJECT}
+
+# Default entrypoint
+ENTRYPOINT ["dbt"]

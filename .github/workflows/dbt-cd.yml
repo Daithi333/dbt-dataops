@@ -1,0 +1,43 @@
+name: dbt Release Validation
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  dbt-prod-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dbt
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install --upgrade pip
+          pip install dbt-core dbt-postgres
+
+      - name: Run dbt tests against deployed database
+        env:
+          DBT_HOST: ${{ secrets.PROD_DB_HOST }}
+          DBT_USER: ${{ secrets.PROD_DB_USER }}
+          DBT_PASSWORD: ${{ secrets.PROD_DB_PASSWORD }}
+          DBT_DBNAME: ${{ secrets.PROD_DB_NAME }}
+          DBT_PORT: ${{ secrets.PROD_DB_PORT }}
+          DBT_PROFILES_DIR: ../..
+        run: |
+          source .venv/bin/activate
+          for project in dbt_projects/*; do
+            echo "🧪 Running dbt validation for $project on deployed DB"
+            cd "$project"
+            dbt deps
+            dbt run
+            dbt test || exit 1
+            cd - >/dev/null
+          done
