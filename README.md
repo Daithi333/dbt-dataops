@@ -50,5 +50,4 @@ for asserting data types:
 2. Run `dbt deps` to install
 
 ### TODOS
- - 
  - Mixed and upper case column names cause issues with dbt / postgres

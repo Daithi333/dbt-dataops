@@ -1,2 +1,2 @@
-{{ config(schema='bronze')}}
-select * from addresses."addresses"
+{{ config(schema='bronze') }}
+select * from addresses.addresses

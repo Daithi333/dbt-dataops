@@ -1,15 +1,15 @@
-{{ config(schema='bronze')}}
+{{ config(schema='bronze') }}
 
 select
-    "VendorID"             as vendor_id,
+    "VendorID" as vendor_id,
     tpep_pickup_datetime,
     tpep_dropoff_datetime,
     passenger_count,
     trip_distance,
-    "RatecodeID"           as ratecode_id,
+    "RatecodeID" as ratecode_id,
     store_and_fwd_flag,
-    "PULocationID"         as pu_location_id,
-    "DOLocationID"         as do_location_id,
+    "PULocationID" as pu_location_id,
+    "DOLocationID" as do_location_id,
     payment_type,
     fare_amount,
     extra,
@@ -19,6 +19,6 @@ select
     improvement_surcharge,
     total_amount,
     congestion_surcharge,
-    "Airport_fee"          as airport_fee,
-    "cbd_congestion_fee"
-from nyc_taxi."trip_data"
+    "Airport_fee" as airport_fee,
+    cbd_congestion_fee
+from nyc_taxi.trip_data

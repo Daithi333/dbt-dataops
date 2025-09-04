@@ -1,3 +1,3 @@
-{{ config(schema='silver')}}
+{{ config(schema='silver') }}
 
-select * FROM {{ ref('trip_data_bronze') }}
+select * from {{ ref('trip_data_bronze') }}

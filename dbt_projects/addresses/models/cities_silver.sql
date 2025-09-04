@@ -1,12 +1,13 @@
-{{ config(schema='silver')}}
+{{ config(schema='silver') }}
 -- trim and uppercase city
 -- remove '*'
 -- remove rows where city is empty
 -- remove rows where city is in specified list
-SELECT
-    distinct trim(upper(
+SELECT DISTINCT
+    trim(upper(
         replace(city, '*', '')
-    )) as city
+    )) AS city
 FROM {{ ref('cities_bronze') }}
-where city is not null
-and not city in ('England', 'Scotland', 'Wales', 'Northern Ireland')
+WHERE
+    city IS NOT null
+    AND NOT city IN ('England', 'Scotland', 'Wales', 'Northern Ireland')

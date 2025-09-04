@@ -1,4 +1,4 @@
-{{ config(schema='silver')}}
+{{ config(schema='silver') }}
 -- upper case address
 -- cast total_spend to decimal
 -- match the address to a city from the cities table
@@ -6,11 +6,15 @@
 -- use OTHER when no match for city
 SELECT
     company_id,
-    upper(address) as address,
-    cast (total_spend as decimal) AS total_spend,
+    cast(total_spend AS decimal) AS total_spend,
+    upper(address) AS address,
     coalesce(
-        (select city from {{ ref('cities_silver') }} where UPPER(address) like '%'||chr(10)||city||',%' order by city desc limit 1),
-         'OTHER'
-    ) as city
+        (
+            SELECT city FROM {{ ref('cities_silver') }}
+            WHERE upper(address) LIKE '%' || chr(10) || city || ',%'
+            ORDER BY city DESC LIMIT 1
+        ),
+        'OTHER'
+    ) AS city
 FROM {{ ref('addresses_bronze') }}
-where address is not null
+WHERE address IS NOT null
