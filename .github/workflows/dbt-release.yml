@@ -1,0 +1,87 @@
+name: dbt CD
+
+on:
+  push:
+    branches: [ main ]   # Build & push "latest"
+    tags:
+      - 'v*'             # Build & push version + run validation
+
+jobs:
+  validate:
+    name: Validate ${{ matrix.env }} DB
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')   # Only run on tags
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [dev, staging, prod]
+        project: [nyc_taxi, addresses]   # 🔑 add more dbt projects here
+    environment: ${{ matrix.env }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dbt
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install --upgrade pip
+          pip install dbt-core dbt-postgres
+
+      - name: Run dbt validation
+        if: |
+          (matrix.env == 'dev') ||
+          (matrix.env == 'staging' && startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-')) ||
+          (matrix.env == 'prod' && startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-'))
+        env:
+          DBT_HOST: ${{ secrets.DB_HOST }}
+          DBT_USER: ${{ secrets.DB_USER }}
+          DBT_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DBT_DBNAME: ${{ secrets.DB_NAME }}
+          DBT_PORT: ${{ secrets.DB_PORT }}
+          DBT_PROFILES_DIR: ../..
+        run: |
+          source .venv/bin/activate
+          cd dbt_projects/${{ matrix.project }}
+          echo "🧪 Running dbt validation for ${{ matrix.project }} on ${{ matrix.env }} DB"
+          dbt deps
+          dbt run
+          dbt test
+
+  build-and-push-tag:
+    name: Build & Push dbt images
+    runs-on: ubuntu-latest
+    needs: validate
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & Push dbt release images
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          for project in dbt_projects/*; do
+            name=$(basename "$project")
+            repo=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+            echo "📦 Building release image for $name"
+
+            docker build \
+              -f Dockerfile.dbt \
+              --build-arg PROJECT=$name \
+              -t ghcr.io/${{ github.repository }}/$name:$VERSION .
+
+            echo "➡️ Pushing version $VERSION for $name"
+            docker push ghcr.io/${{ github.repository }}/$name:$VERSION
+          done

@@ -60,3 +60,36 @@ jobs:
             dbt test || exit 1
             cd - >/dev/null
           done
+
+  build-and-push-latest:
+    name: Build & Push dbt images
+    runs-on: ubuntu-latest
+    needs: dbt-ci
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & Push dbt image (latest)
+        run: |
+          for project in dbt_projects/*; do
+            name=$(basename "$project")
+            repo=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+            echo "📦 Building dbt image for $name"
+
+            docker build \
+              -f Dockerfile.dbt \
+              --build-arg PROJECT=$name \
+              -t ghcr.io/$repo/$name:latest .
+          
+            echo "➡️ Pushing latest for $name"
+            docker push ghcr.io/$repo/$name:latest
+          done
